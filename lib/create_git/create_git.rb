@@ -1,13 +1,8 @@
 class GitCreator
 
-  def self.create_git(project, repo_identifier, is_default)
+  def self.create_git(project,repo_url_base, repo_identifier, is_default)
     repo_path_base = Setting.plugin_redmine_create_git['repo_path']
     repo_path_base += '/' unless repo_path_base[-1, 1]=='/'
-
-    repo_url_base = Setting.plugin_redmine_create_git['repo_url']
-    if (defined?(Checkout) and not repo_url_base.nil?)
-      repo_url_base += '/' unless repo_url_base[-1, 1]=='/'
-    end
 
     project_identifier = project.identifier
 
@@ -19,7 +14,7 @@ class GitCreator
 
     Rails.logger.info "Creating repo in #{new_repo_path} for project #{project.name}"
 
-    if project and create_repo(new_repo_path)
+    if project and create_repo(repo_url_base,new_repo_path)
       repo = Repository.factory('Git')
       repo.project = project
       repo.url = repo_path_base+new_repo_name
@@ -53,31 +48,17 @@ class GitCreator
 
   end
 
-  def self.create_repo(repo_fullpath)
+  def self.create_repo(repo_url,repo_fullpath)
+    if(repo_url)
+      Rails.logger.error "repo_url is '#{repo_url}' !"
+    end 
     if File.exist?(repo_fullpath)
       Rails.logger.error "Repository in '#{repo_fullpath}' already exists!"
       raise I18n.t('errors.repo_already_exists', {:path => repo_fullpath})
     else
       #Clone the new repository to initialize it
       #FIXME: incompatible with Windows
-      temporary_clone='/tmp/tmp_create_git/'
-      system("rm -Rf #{temporary_clone}")
-      system("mkdir #{repo_fullpath}")
-      system("cd #{repo_fullpath} && git init --bare")
-      system("git clone #{repo_fullpath} #{temporary_clone}");
-
-      File.open("#{temporary_clone}/.gitignore", 'w') { |f| f.write(Setting.plugin_redmine_create_git['gitignore']) }
-      #Make first commit
-      #TODO: Make message configurable
-      system("cd #{temporary_clone} && git add .gitignore && git commit -m 'First Commit' && git push origin master");
-      #Create branches
-      Setting.plugin_redmine_create_git['branches'].gsub(/\r/, '').split(/\n/).each do |branch|
-        Rails.logger.info "Adding branch #{branch}"
-        system("cd #{temporary_clone} && git checkout -b #{branch} && git push origin #{branch}");
-      end
-      #Delete the temporary clone
-      system("rm -Rf  #{temporary_clone}")
-
+      system("git clone  --mirror  #{repo_url} #{repo_fullpath}");
       Rails.logger.info 'Creation finished'
     end
     return true
