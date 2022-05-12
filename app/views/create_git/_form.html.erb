@@ -20,6 +20,13 @@
     <%= label_tag('repository_scm', l(:field_path_to_repository)) %>
     <%= text_field_tag :path_to_repository, '', :disabled => true, :size => 50 %>
   </p>
+    
+    
+  
+  <p>
+    <%= label_tag('repository_scm', l("labels.repo_url")) %>
+    <%= text_field_tag :repo_url, '', %>
+  </p>
 
   <p>
     <%= label_tag('repository_scm', l(:field_repository_is_default)) %>
